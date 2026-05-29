@@ -16,7 +16,7 @@ CREATE TABLE topics (
     topic_markdown_hash TEXT,
     embedding_model TEXT,
     embedding_dimension INTEGER DEFAULT 4096,
-    topic_embedding VECTOR(1536),
+    topic_embedding VECTOR(4096),
     embedded_at TIMESTAMPTZ,
     importance_score FLOAT8 DEFAULT 0,
     confidence_score FLOAT8 DEFAULT 0,

@@ -9,7 +9,4 @@ CREATE INDEX idx_topic_articles_relation_type ON topic_articles(relation_type);
 CREATE INDEX idx_topic_timeline_topic_id ON topic_timeline_events(topic_id);
 CREATE INDEX idx_topic_timeline_event_date ON topic_timeline_events(event_date DESC);
 
--- Vector index for topic embeddings
-CREATE INDEX idx_topics_embedding_hnsw
-ON topics
-USING hnsw (topic_embedding vector_cosine_ops);
+-- HNSW index skipped: pgvector limits to 2000 dims, we use 4096

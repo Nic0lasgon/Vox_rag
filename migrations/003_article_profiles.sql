@@ -7,7 +7,7 @@ CREATE TABLE article_profiles (
     keywords JSONB DEFAULT '[]'::jsonb,
     embedding_model TEXT,
     embedding_dimension INTEGER,
-    embedding VECTOR(1536),
+    embedding VECTOR(4096),
     embedded_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

@@ -7,12 +7,11 @@ CREATE TABLE article_chunks (
     section_title TEXT,
     embedding_model TEXT,
     embedding_dimension INTEGER,
-    embedding VECTOR(1536),
+    embedding VECTOR(4096),
     embedded_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(article_id, chunk_index)
 );
 
 CREATE INDEX idx_article_chunks_article_id ON article_chunks (article_id);
-CREATE INDEX idx_article_chunks_embedding_hnsw
-    ON article_chunks USING hnsw (embedding vector_cosine_ops);
+-- HNSW index skipped: pgvector limits to 2000 dims, we use 4096
