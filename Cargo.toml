@@ -1,0 +1,35 @@
+[package]
+name = "vox-rag"
+version = "0.1.0"
+edition = "2024"
+description = "VoxPod RAG - Article embedding and semantic search"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+axum = "0.8"
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono", "json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+thiserror = "2"
+reqwest = { version = "0.12", features = ["json", "gzip", "brotli", "http2"] }
+async-trait = "0.1"
+pgvector = { version = "0.4", features = ["sqlx"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+clap = { version = "4", features = ["derive"] }
+dotenvy = "0.15"
+sha2 = "0.10"
+hex = "0.4"
+regex = "1"
+
+[dev-dependencies]
+httpmock = "0.7"
+tokio-test = "0.4"
+tower = "0.5"
+
+[[bin]]
+name = "vox-rag"
+path = "src/main.rs"

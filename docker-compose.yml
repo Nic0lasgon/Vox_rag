@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: voxrag
+      POSTGRES_PASSWORD: voxrag_dev
+      POSTGRES_DB: vox_rag
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voxrag -d vox_rag"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    command: ["vox-rag", "all"]
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgres://voxrag:voxrag_dev@postgres:5432/vox_rag
+      PORT: "3000"
+      LOG_LEVEL: info
+      EMBEDDING_PROVIDER: octen
+      EMBEDDING_MODEL: octen-embedding-8b
+      EMBEDDING_DIMENSION: "4096"
+      EMBEDDING_BATCH_SIZE: "32"
+      EMBEDDING_MAX_RETRIES: "3"
+      EMBEDDING_TIMEOUT_MS: "60000"
+      OCTEN_API_KEY: ${OCTEN_API_KEY}
+      OCTEN_API_BASE_URL: https://api.octen.ai
+      SIMILARITY_NEAR_DUPLICATE_THRESHOLD: "0.92"
+      SIMILARITY_SAME_STORY_THRESHOLD: "0.86"
+      SIMILARITY_CONTEXT_THRESHOLD: "0.78"
+      SIMILARITY_WEAK_THRESHOLD: "0.70"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
