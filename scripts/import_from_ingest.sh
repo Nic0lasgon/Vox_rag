@@ -9,7 +9,7 @@
 
 set -e
 
-INGEST_DB="postgres://postgres:postgres@localhost:5432/mypod_pipeline"
+INGEST_DB="${INGEST_DB:-postgres://postgres:postgres@localhost:5432/mypod_pipeline}"
 VOXRAG_DB="postgres://voxrag:voxrag_dev@localhost:5433/vox_rag"
 
 echo "=== Import des articles qualifiés depuis ingest-pipeline ==="

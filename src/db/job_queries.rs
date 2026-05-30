@@ -43,7 +43,11 @@ pub async fn create_embedding_job(
 }
 
 #[instrument(skip(pool))]
-pub async fn pick_pending_jobs(pool: &PgPool, limit: i64) -> Result<Vec<EmbeddingJob>> {
+pub async fn pick_pending_jobs(
+    pool: &PgPool,
+    limit: i64,
+    target_type: Option<&str>,
+) -> Result<Vec<EmbeddingJob>> {
     let jobs = sqlx::query_as::<_, EmbeddingJob>(
         r#"
         SELECT id, target_type, target_id, model, input_hash, status, attempts,
@@ -51,12 +55,14 @@ pub async fn pick_pending_jobs(pool: &PgPool, limit: i64) -> Result<Vec<Embeddin
         FROM embedding_jobs
         WHERE status = 'pending'
           AND (scheduled_at IS NULL OR scheduled_at <= NOW())
+          AND ($2::TEXT IS NULL OR target_type = $2)
         ORDER BY created_at ASC
         LIMIT $1
         FOR UPDATE SKIP LOCKED
         "#,
     )
     .bind(limit)
+    .bind(target_type)
     .fetch_all(pool)
     .await
     .context("Failed to pick pending jobs")?;

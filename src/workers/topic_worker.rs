@@ -77,9 +77,24 @@ impl TopicWorker {
     }
 
     async fn process_batch(&self) -> Result<usize> {
-        let jobs = job_queries::pick_pending_jobs(&self.pool, self.batch_size)
+        let mut jobs = Vec::new();
+        for target_type in &[
+            "process_article_batch",
+            "refresh_topic_embedding",
+            "archive_inactive_topics",
+        ] {
+            let batch = job_queries::pick_pending_jobs(
+                &self.pool,
+                self.batch_size - jobs.len() as i64,
+                Some(target_type),
+            )
             .await
             .context("Failed to pick pending jobs")?;
+            jobs.extend(batch);
+            if jobs.len() >= self.batch_size as usize {
+                break;
+            }
+        }
 
         if jobs.is_empty() {
             return Ok(0);

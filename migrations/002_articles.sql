@@ -25,4 +25,4 @@ CREATE INDEX idx_articles_source_name ON articles (source_name);
 CREATE INDEX idx_articles_language ON articles (language);
 CREATE INDEX idx_articles_title_hash ON articles (title_hash);
 CREATE INDEX idx_articles_content_hash ON articles (content_hash);
-CREATE INDEX idx_articles_canonical_url ON articles (canonical_url);
+CREATE UNIQUE INDEX idx_articles_canonical_url ON articles (canonical_url);

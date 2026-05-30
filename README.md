@@ -36,7 +36,7 @@ cargo run -- topic-worker # Worker de topics uniquement
 cargo run -- all          # API + workers (dev local)
 ```
 
-**Important** : en raison de [BUG-004](#bugs-connus), les workers `embedding` et `topic` partagent la même file de jobs sans filtrer par `target_type`. Lancez-les **séquentiellement** : d'abord le worker d'embedding, puis le topic-worker.
+Les workers `embedding` et `topic` peuvent être lancés **en parallèle** ou séparément. Chaque worker filtre sa propre file de jobs par `target_type`.
 
 ### Flux de données détaillé
 
@@ -283,21 +283,21 @@ Le détail audit topic-by-topic est disponible dans `docs/validation-report-2026
 - **Fix** : Passage à `VECTOR(4096)` dans les migrations 003, 005, 006, 007, 010. Suppression des index HNSW (limite pgvector = 2000 dims).
 - **Statut** : Corrigé dans le code
 
-### BUG-004 — Workers partagent la même file de jobs [WORKAROUND]
+### BUG-004 — Workers partagent la même file de jobs [CORRIGÉ]
 
 - **Fichier** : `src/db/job_queries.rs:46` (`pick_pending_jobs`)
-- **Symptôme** : Le topic worker prend les jobs `article_profile`, les marque `failed`. L'embedding worker ne peut plus les traiter. Le mode `all` ne fonctionne pas.
-- **Cause** : `pick_pending_jobs` ne filtre pas par `target_type`
-- **Workaround** : Lancer les workers séquentiellement (embedding d'abord, puis topic)
-- **Fix nécessaire** : Ajouter un filtre `target_type` à `pick_pending_jobs`
+- **Symptôme** : Le topic worker prenait les jobs `article_profile`, les marquait `failed`. L'embedding worker ne pouvait plus les traiter. Le mode `all` ne fonctionnait pas.
+- **Cause** : `pick_pending_jobs` ne filtrait pas par `target_type`
+- **Fix** : Ajout d'un paramètre `target_type: Option<&str>` à `pick_pending_jobs`. L'embedding worker filtre sur `["article_profile", "article_chunk"]`, le topic worker sur `["process_article_batch", "refresh_topic_embedding", "archive_inactive_topics"]`.
+- **Statut** : Corrigé dans `src/db/job_queries.rs`, `src/workers/embedding_worker.rs`, `src/workers/topic_worker.rs`
 
-### BUG-005 — Script import DB URL incorrect [WORKAROUND]
+### BUG-005 — Script import DB URL incorrect [CORRIGÉ]
 
 - **Fichier** : `scripts/import_from_ingest.sh:12`
 - **Symptôme** : Authentification échouée
 - **Cause** : URL hardcodée `postgres://postgres:postgres@localhost:5432` au lieu des credentials réels
-- **Workaround** : Exécution manuelle des commandes SQL avec les bons credentials
-- **Fix nécessaire** : Utiliser une variable d'environnement ou `.env` pour l'URL ingest-pipeline
+- **Fix** : Utilisation d'une variable d'environnement avec valeur par défaut : `INGEST_DB="${INGEST_DB:-postgres://postgres:postgres@localhost:5432/mypod_pipeline}"`
+- **Statut** : Corrigé dans `scripts/import_from_ingest.sh`
 
 ## Points d'attention
 
@@ -345,7 +345,7 @@ cd Vox_rag
 - `length(content) > 300`
 - Limite : 500 articles par import
 
-**Note** : Le script contient [BUG-005](#bugs-connus) (URL DB hardcodée). Vérifiez les credentials avant exécution.
+**Note** : Le script utilise la variable d'environnement `INGEST_DB` (voir [BUG-005](#bugs-connus)). La valeur par défaut est `postgres://postgres:postgres@localhost:5432/mypod_pipeline`.
 
 ### Extraction de contenu
 
@@ -450,7 +450,7 @@ docker build -t vox-rag .
 - Le worker peut tourner sur plusieurs instances (grâce au `SKIP LOCKED`)
 - Surveiller les jobs `failed` (échecs répétés d'API)
 - Les migrations s'appliquent automatiquement au démarrage
-- Lancer les workers séquentiellement jusqu'à correction de [BUG-004](#bugs-connus)
+- Les workers peuvent être lancés en parallèle (correction de [BUG-004](#bugs-connus))
 
 ## Ressources
 

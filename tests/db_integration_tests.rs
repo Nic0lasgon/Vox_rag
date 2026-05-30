@@ -89,7 +89,7 @@ mod article_queries_tests {
             .await
             .expect("Failed second insert");
 
-        assert_eq!(inserted2.id, id2);
+        assert_eq!(inserted2.id, id1);
         assert_eq!(inserted2.title, "Updated Title");
     }
 
@@ -633,7 +633,9 @@ mod job_queries_tests {
             .await
             .unwrap();
 
-        let jobs = job_queries::pick_pending_jobs(&pool, 10).await.unwrap();
+        let jobs = job_queries::pick_pending_jobs(&pool, 10, Some("article_profile"))
+            .await
+            .unwrap();
         assert!(!jobs.is_empty());
         let pending_ids: Vec<Uuid> = jobs.iter().map(|j| j.target_id).collect();
         assert!(pending_ids.contains(&id));
@@ -660,7 +662,9 @@ mod job_queries_tests {
 
         job_queries::mark_job_done(&pool, job1.id).await.unwrap();
 
-        let jobs = job_queries::pick_pending_jobs(&pool, 10).await.unwrap();
+        let jobs = job_queries::pick_pending_jobs(&pool, 10, Some("article_profile"))
+            .await
+            .unwrap();
         let job_ids: Vec<Uuid> = jobs.iter().map(|j| j.id).collect();
         assert!(
             !job_ids.contains(&job1.id),
@@ -684,7 +688,9 @@ mod job_queries_tests {
             .await
             .unwrap();
 
-        let jobs = job_queries::pick_pending_jobs(&pool, 10).await.unwrap();
+        let jobs = job_queries::pick_pending_jobs(&pool, 10, Some("article_profile"))
+            .await
+            .unwrap();
         let running_ids: Vec<Uuid> = jobs.iter().map(|j| j.id).collect();
         assert!(
             !running_ids.contains(&job.id),
@@ -706,7 +712,9 @@ mod job_queries_tests {
 
         job_queries::mark_job_done(&pool, job.id).await.unwrap();
 
-        let jobs = job_queries::pick_pending_jobs(&pool, 10).await.unwrap();
+        let jobs = job_queries::pick_pending_jobs(&pool, 10, Some("article_profile"))
+            .await
+            .unwrap();
         let pending_ids: Vec<Uuid> = jobs.iter().map(|j| j.id).collect();
         assert!(
             !pending_ids.contains(&job.id),
@@ -730,7 +738,9 @@ mod job_queries_tests {
             .await
             .unwrap();
 
-        let jobs = job_queries::pick_pending_jobs(&pool, 10).await.unwrap();
+        let jobs = job_queries::pick_pending_jobs(&pool, 10, Some("article_profile"))
+            .await
+            .unwrap();
         let pending_ids: Vec<Uuid> = jobs.iter().map(|j| j.id).collect();
         assert!(
             !pending_ids.contains(&job.id),
@@ -758,7 +768,9 @@ mod job_queries_tests {
             .await
             .unwrap();
 
-        let jobs = job_queries::pick_pending_jobs(&pool, 10).await.unwrap();
+        let jobs = job_queries::pick_pending_jobs(&pool, 10, Some("article_profile"))
+            .await
+            .unwrap();
         let rescheduled_ids: Vec<Uuid> = jobs.iter().map(|j| j.id).collect();
         assert!(
             !rescheduled_ids.contains(&job.id),
@@ -784,7 +796,9 @@ mod job_queries_tests {
 
         job_queries::reschedule_job(&pool, job.id, 0).await.unwrap();
 
-        let jobs = job_queries::pick_pending_jobs(&pool, 10).await.unwrap();
+        let jobs = job_queries::pick_pending_jobs(&pool, 10, Some("article_profile"))
+            .await
+            .unwrap();
         let rescheduled_ids: Vec<Uuid> = jobs.iter().map(|j| j.id).collect();
         assert!(
             rescheduled_ids.contains(&job.id),
@@ -887,11 +901,21 @@ mod job_queries_tests {
             .unwrap();
         }
 
-        let pool2 = pool.clone();
-        let (jobs1, jobs2) = tokio::join!(
-            async { job_queries::pick_pending_jobs(&pool, 3).await.unwrap() },
-            async { job_queries::pick_pending_jobs(&pool2, 3).await.unwrap() },
-        );
+        let pool2 = PgPool::connect_with(pool.connect_options().as_ref().clone())
+            .await
+            .unwrap();
+        let handle1 = tokio::spawn(async move {
+            job_queries::pick_pending_jobs(&pool, 3, Some("article_profile"))
+                .await
+                .unwrap()
+        });
+        let handle2 = tokio::spawn(async move {
+            job_queries::pick_pending_jobs(&pool2, 3, Some("article_profile"))
+                .await
+                .unwrap()
+        });
+        let jobs1 = handle1.await.unwrap();
+        let jobs2 = handle2.await.unwrap();
 
         let ids1: std::collections::HashSet<Uuid> = jobs1.iter().map(|j| j.id).collect();
         let ids2: std::collections::HashSet<Uuid> = jobs2.iter().map(|j| j.id).collect();
@@ -917,7 +941,9 @@ mod job_queries_tests {
             .unwrap();
         }
 
-        let jobs = job_queries::pick_pending_jobs(&pool, 3).await.unwrap();
+        let jobs = job_queries::pick_pending_jobs(&pool, 3, Some("article_profile"))
+            .await
+            .unwrap();
         assert_eq!(jobs.len(), 3);
     }
 }
